@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Contrato de Hospedaje</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            margin: 2.5cm;
+        }
+        h1, h2 {
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            font-size: 14pt;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 12pt;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+        p {
+            text-align: justify;
+            margin-bottom: 1em;
+        }
+        ol {
+            padding-left: 0;
+            list-style-position: inside;
+        }
+        li {
+            margin-bottom: 1em;
+        }
+        strong {
+            font-weight: bold;
+        }
+        .signature-section {
+            margin-top: 100px;
+            text-align: center;
+        }
+        .signature-line {
+            display: inline-block;
+            width: 250px;
+            text-align: center;
+            margin: 0 50px;
+        }
+        .signature-line p {
+            border-top: 1px solid #000;
+            padding-top: 5px;
+            margin-top: 60px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>CONTRATO DE PRESTACIÓN DE SERVICIOS DE HOSPEDAJE</h1>
+
+    <p>
+        CONTRATO DE PRESTACIÓN DE SERVICIOS DE HOSPEDAJE QUE CELEBRAN, POR UNA PARTE, <strong>PALAPA LA CASONA</strong>, A QUIEN EN LO SUCESIVO SE LE DENOMINARÁ "EL PRESTADOR", Y POR LA OTRA, EL HUÉSPED CUYO NOMBRE SE ESPECIFICA MÁS ADELANTE, A QUIEN EN LO SUCESIVO SE LE DENOMINARÁ "EL HUÉSPED".
+    </p>
+
+    <h2>DECLARACIONES</h2>
+
+    <p>
+        <strong>I.- Declara "EL PRESTADOR":</strong> Ser una entidad con plena capacidad para ofrecer servicios de hospedaje, con domicilio fiscal en Carretera Costera 200, Llano Grande, 70947 San Pedro Pochutla, Oax.
+    </p>
+    <p>
+        <strong>II.- Declara "EL HUÉSPED":</strong> Llamarse <strong>{{nombreHuesped}}</strong>, y contar con la capacidad legal y económica para celebrar el presente contrato y obligarse en los términos del mismo.
+    </p>
+
+    <p>
+        Ambas partes se reconocen mutuamente la capacidad con la que comparecen y convienen en celebrar el presente Contrato al tenor de las siguientes:
+    </p>
+
+    <h2>CLÁUSULAS</h2>
+
+    <ol>
+        <li>
+            <strong>PRIMERA.- OBJETO.</strong> "EL PRESTADOR" se obliga a proporcionar a "EL HUÉSPED" el servicio de hospedaje en la habitación y bajo las condiciones especificadas en este contrato.
+        </li>
+        <li>
+            <strong>SEGUNDA.- VIGENCIA.</strong> El presente contrato tendrá una vigencia a partir del día <strong>{{fechaInicio}}</strong> y hasta el día <strong>{{fechaFin}}</strong>.
+        </li>
+        <li>
+            <strong>TERCERA.- PRECIO Y FORMA DE PAGO.</strong> El precio total por los servicios de hospedaje es la cantidad de <strong>${{precioTotal}} MXN</strong>. El método de pago acordado es: {{tipoPago}}.
+        </li>
+        <li>
+            <strong>CUARTA.- OBLIGACIONES DEL HUÉSPED.</strong> "EL HUÉSPED" se obliga a: a) Conducirse con decencia y moralidad dentro de las instalaciones; b) Cuidar y mantener en buen estado el mobiliario y la propiedad; c) No realizar actividades ilícitas; d) Respetar el reglamento interno del establecimiento.
+        </li>
+        <li>
+            <strong>QUINTA.- OBLIGACIONES DEL PRESTADOR.</strong> "EL PRESTADOR" se obliga a: a) Proporcionar la habitación reservada en condiciones de higiene y funcionalidad; b) Garantizar la seguridad y tranquilidad de "EL HUÉSPED" durante su estancia.
+        </li>
+        <li>
+            <strong>SEXTA.- JURISDICCIÓN.</strong> Para la interpretación y cumplimiento del presente contrato, las partes se someten a la jurisdicción de los tribunales competentes de la ciudad de San Pedro Pochutla, Oaxaca, renunciando a cualquier otro fuero que pudiera corresponderles.
+        </p>
+    </ol>
+
+    <p>Leído el presente contrato y enteradas las partes de su contenido y alcance, lo firman por duplicado.</p>
+
+    <div class="signature-section">
+        <div class="signature-line">
+            <p>"EL PRESTADOR"<br>Palapa La Casona</p>
+        </div>
+        <div class="signature-line">
+            <p>"EL HUÉSPED"<br>{{nombreHuesped}}</p>
+        </div>
+    </div>
+
+</body>
+</html>
