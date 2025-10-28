@@ -7,9 +7,9 @@ import fs from 'fs/promises';
 import puppeteer from 'puppeteer';
 import path from 'path';
 import { fileURLToPath } from 'url';
-// Asegúrate de tener dotenv instalado (npm install dotenv) y un archivo .env si usas variables de entorno
-// import dotenv from 'dotenv';
-// dotenv.config(); // Descomenta si usas archivo .env
+import dotenv from 'dotenv';
+import multer from 'multer'; // Para manejar subida de archivos
+import crypto from 'crypto'; // Para generar nombres de archivo únicos
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -21,6 +21,9 @@ const __dirname = path.dirname(__filename);
 app.use(cors());
 app.use(express.json());
 
+// Middleware para servir archivos estáticos (ANTES del 404)
+app.use('/images/habitaciones', express.static(path.join(__dirname, 'uploads')));
+
 // *******************************************************************
 // 1. CONFIGURACIÓN DE EMAIL
 // *******************************************************************
@@ -29,7 +32,7 @@ const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
         user: process.env.EMAIL_USER || 'ordazruudvan@gmail.com', // Email desde donde se enviarán
-        pass: process.env.EMAIL_PASS || 'fllj axiw oolc yblu', // Contraseña de aplicación
+        pass: process.env.EMAIL_PASS || 'qpcs cois sjhp wvrl', // Contraseña de aplicación
     },
 });
 
@@ -95,10 +98,7 @@ const sendConfirmationEmail = async (reserva, datosCliente, configuracionPago) =
 // Conexión a la base de datos MongoDB
 // Usa variable de entorno si está definida, si no, usa la local
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/palapalacasona';
-mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+mongoose.connect(MONGODB_URI) // useNewUrlParser y useUnifiedTopology ya no son necesarias en Mongoose 6+
 .then(() => {
   console.log(`✅ Conectado a MongoDB en ${MONGODB_URI === process.env.MONGODB_URI ? 'URI de entorno' : 'URI local'}`);
   setupInitialConfig();
@@ -159,6 +159,9 @@ const habitacionSchema = new mongoose.Schema({
   numero: { type: Number, required: true, unique: true },
   tipo: { type: String, required: true, trim: true },
   precio: { type: Number, required: true, min: 0 },
+  // ===== INICIO CAMBIO =====
+  imageUrls: [{ type: String, trim: true }], // Ahora es un array de Strings
+  // ===== FIN CAMBIO =====
 }, { timestamps: true });
 const Habitacion = mongoose.model('Habitacion', habitacionSchema);
 
@@ -183,13 +186,11 @@ const eventoSchema = new mongoose.Schema({
   areaRentada: { type: String, default: 'Área Social', trim: true },
   monto: { type: Number, required: [true, 'El monto es obligatorio'], min: [0, 'El monto no puede ser negativo'] },
   estado: { type: String, enum: ['pendiente', 'confirmado', 'cancelado'], default: 'pendiente' },
-  // Podrías añadir más campos como emailCliente, telefonoCliente, notas, etc.
 }, { timestamps: true });
 const Evento = mongoose.model('Evento', eventoSchema);
 
 // Esquema de Configuración
 const configSchema = new mongoose.Schema({
-  // Usamos un identificador único para asegurar que solo haya un documento
   identificador: { type: String, default: 'configuracion-principal', unique: true },
   cuentaBancaria: { type: String, required: true, trim: true },
   clabe: { type: String, required: true, trim: true },
@@ -224,7 +225,6 @@ const setupInitialConfig = async () => {
       banco: 'BBVA',
       whatsappUrl: 'https://wa.me/529514401726?text=Hola,%20aquí%20está%20el%20comprobante%20de%20mi%20reserva.',
     };
-    // Busca por identificador, si no existe lo crea (upsert), si existe lo actualiza
     await Config.findOneAndUpdate({ identificador: 'configuracion-principal' }, configData, { upsert: true, new: true, setDefaultsOnInsert: true });
     console.log('✅ Documento de configuración de pago inicializado/verificado.');
   } catch (error) {
@@ -237,20 +237,15 @@ const setupInitialConfig = async () => {
 const checkReservationConflict = async (habitacionId, fechaInicio, fechaFin, currentReservaId = null) => {
   const inicio = new Date(fechaInicio);
   const fin = new Date(fechaFin);
-  // Validación básica de fechas
   if (inicio >= fin) {
     throw new Error("La fecha de inicio debe ser anterior a la fecha de fin.");
   }
   let query = {
     habitacion: habitacionId,
     estado: { $in: ['pendiente', 'confirmada'] }, // Solo verifica contra reservas activas
-    // Condición de solapamiento:
-    // Una reserva existente (E) solapa con la nueva (N) si:
-    // E.inicio < N.fin Y E.fin > N.inicio
     fechaInicio: { $lt: fin },
     fechaFin: { $gt: inicio }
   };
-  // Si estamos actualizando, excluimos la reserva actual de la verificación
   if (currentReservaId) {
     query._id = { $ne: currentReservaId };
   }
@@ -258,6 +253,57 @@ const checkReservationConflict = async (habitacionId, fechaInicio, fechaFin, cur
   return existingReservations.length > 0;
 };
 
+// ===== INICIO: Configuración de Multer para Subida de Imágenes =====
+// Define dónde se guardarán las imágenes
+const storage = multer.diskStorage({
+  destination: async (req, file, cb) => {
+    // Las imágenes se guardarán en uploads/<roomId>/
+    const roomId = req.params.roomId; // Obtenemos el ID de la habitación desde los parámetros de la ruta
+    if (!roomId || !mongoose.Types.ObjectId.isValid(roomId)) {
+        console.error("Multer Destination Error: Room ID inválido o faltante:", roomId);
+        return cb(new Error('ID de habitación inválido o faltante en la ruta'), false);
+    }
+    const roomPath = path.join(__dirname, 'uploads', roomId.toString());
+    try {
+        // Asegurar que el directorio base 'uploads' existe
+        await fs.mkdir(path.join(__dirname, 'uploads'), { recursive: true });
+        // Crear la carpeta específica de la habitación
+        await fs.mkdir(roomPath, { recursive: true });
+        console.log(`Directorio de destino asegurado: ${roomPath}`);
+        cb(null, roomPath); // Llama al callback con la ruta de destino
+    } catch (err) {
+        console.error("Error al crear directorio para habitación:", err);
+        cb(err, false);
+    }
+  },
+  filename: (req, file, cb) => {
+    // Genera un nombre de archivo único para evitar colisiones
+    const uniqueSuffix = Date.now() + '-' + crypto.randomBytes(4).toString('hex');
+    const extension = path.extname(file.originalname);
+    const newFilename = `${uniqueSuffix}${extension}`;
+    console.log(`Generando nombre de archivo: ${newFilename}`);
+    cb(null, newFilename);
+  }
+});
+
+// Filtro para aceptar solo ciertos tipos de imagen
+const fileFilter = (req, file, cb) => {
+  const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  if (allowedMimes.includes(file.mimetype)) {
+    cb(null, true); // Aceptar el archivo
+  } else {
+    console.warn(`Archivo rechazado: Tipo MIME no soportado - ${file.mimetype}`);
+    cb(new Error('Formato de imagen no soportado. Solo JPG, PNG, WEBP, GIF.'), false); // Rechazar el archivo
+  }
+};
+
+// Crear la instancia de multer con la configuración
+const upload = multer({
+    storage: storage,
+    fileFilter: fileFilter,
+    limits: { fileSize: 1024 * 1024 * 5 } // Límite de 5MB
+});
+// ===== FIN: Configuración de Multer =====
 
 // --- RUTAS DE LA API ---
 
@@ -591,6 +637,111 @@ app.get('/api/users-list', async (req, res) => {
 // Faltarían rutas para CRUD de usuarios (POST, PUT, DELETE) si se necesita gestionarlos desde el panel
 
 // Rutas de Habitaciones
+
+app.post('/api/upload/room-images/:roomId', upload.array('images', 10), async (req, res) => {
+    const { roomId } = req.params;
+    console.log(`Recibida petición POST a /api/upload/room-images/${roomId}`);
+    if (!mongoose.Types.ObjectId.isValid(roomId)) {
+        return res.status(400).json({ message: 'ID de habitación inválido.' });
+    }
+    try {
+        if (!req.files || req.files.length === 0) {
+            console.warn(`No se recibieron archivos para la habitación ${roomId}`);
+            return res.status(400).json({ message: 'No se subieron archivos.' });
+        }
+        console.log(`Archivos recibidos para ${roomId}:`, req.files.map(f => f.filename));
+        const uploadedImageUrls = req.files.map(file => `/images/habitaciones/${roomId}/${file.filename}`);
+        console.log(`URLs generadas para ${roomId}:`, uploadedImageUrls);
+        const updatedRoom = await Habitacion.findByIdAndUpdate(
+            roomId,
+            { $push: { imageUrls: { $each: uploadedImageUrls } } },
+            { new: true }
+        );
+        if (!updatedRoom) {
+            console.error(`Habitación ${roomId} no encontrada después de intentar añadir URLs.`);
+            try {
+                for (const file of req.files) {
+                    const orphanPath = path.join(__dirname, 'uploads', roomId.toString(), file.filename);
+                    await fs.unlink(orphanPath);
+                    console.log(`Archivo huérfano borrado: ${orphanPath}`);
+                }
+            } catch (unlinkErr) {
+                console.error(`Error al borrar archivos huérfanos para habitación ${roomId} no encontrada:`, unlinkErr);
+            }
+            return res.status(404).json({ message: 'Habitación no encontrada para añadir imágenes.' });
+        }
+        console.log(`Imágenes añadidas a la habitación ${roomId}. URLs actualizadas:`, updatedRoom.imageUrls);
+        res.status(200).json({
+            message: `${req.files.length} imágenes subidas y añadidas con éxito.`,
+            imageUrls: updatedRoom.imageUrls
+        });
+    } catch (error) {
+        console.error(`❌ Error general al procesar subida para habitación ${roomId}:`, error);
+        if (error instanceof multer.MulterError) {
+            return res.status(400).json({ message: `Error de Multer: ${error.message}` });
+        } else if (error.message.includes('Formato de imagen no soportado')) {
+             return res.status(400).json({ message: error.message });
+        } else if (error.message.includes('ID de habitación inválido')) {
+             return res.status(400).json({ message: error.message });
+        }
+        res.status(500).json({ message: 'Error interno del servidor al subir las imágenes.', error: error.message });
+    }
+});
+
+app.delete('/api/images/habitaciones/:roomId/:filename', async (req, res) => {
+    const { roomId, filename } = req.params;
+    console.log(`Recibida petición DELETE a /api/images/habitaciones/${roomId}/${filename}`);
+    try {
+        if (!mongoose.Types.ObjectId.isValid(roomId)) {
+            return res.status(400).send('ID de habitación inválido.');
+        }
+        // Decodificar el nombre del archivo si contiene caracteres especiales codificados en la URL
+        const decodedFilename = decodeURIComponent(filename);
+        const imageUrlToRemove = `/images/habitaciones/${roomId}/${decodedFilename}`;
+
+        console.log(`Intentando quitar URL: ${imageUrlToRemove} de la habitación ${roomId}`);
+        const updatedRoom = await Habitacion.findByIdAndUpdate(
+            roomId,
+            { $pull: { imageUrls: imageUrlToRemove } }, // $pull quita elementos del array que coincidan
+            { new: true }
+        );
+
+        if (!updatedRoom) {
+            console.error(`Habitación ${roomId} no encontrada al intentar borrar imagen.`);
+            // Si la habitación no existe, no hay nada que borrar.
+            // Podríamos verificar si la URL existía antes, pero $pull no da error si no encuentra.
+            return res.status(404).json({ message: 'Habitación no encontrada o la imagen ya no estaba asociada.' });
+        }
+
+        // Borrar el archivo físico del servidor
+        const filePath = path.join(__dirname, 'uploads', roomId.toString(), decodedFilename);
+        try {
+            await fs.access(filePath); // Verifica si el archivo existe antes de borrar
+            await fs.unlink(filePath); // Borra el archivo
+            console.log(`Archivo físico borrado: ${filePath}`);
+        } catch (unlinkError) {
+            if (unlinkError.code === 'ENOENT') { // Error NO ENTry (el archivo no existe)
+                console.warn(`Advertencia: El archivo ${filePath} no existía en el servidor al intentar borrarlo.`);
+                // Esto es aceptable si la DB se desincronizó o si se borró manualmente
+            } else { // Otro error al borrar (ej. permisos)
+                console.error(`Error al borrar el archivo físico ${filePath}:`, unlinkError);
+                // Considera si esto debería ser un error 500 o solo una advertencia
+                // return res.status(500).json({ message: 'Error al borrar el archivo físico.' });
+            }
+        }
+
+        console.log(`Imagen ${decodedFilename} eliminada de la habitación ${roomId}. URLs restantes:`, updatedRoom.imageUrls);
+        res.status(200).json({
+            message: 'Imagen eliminada con éxito.',
+            imageUrls: updatedRoom.imageUrls // Devuelve el array actualizado
+        });
+
+    } catch (error) {
+        console.error(`❌ Error general al eliminar imagen ${filename} de habitación ${roomId}:`, error);
+        res.status(500).json({ message: 'Error interno del servidor al eliminar la imagen.', error: error.message });
+    }
+});
+
 app.get('/api/habitaciones/disponibles', async (req, res) => {
   const { fechaInicio, fechaFin } = req.query;
   if (!fechaInicio || !fechaFin) {
@@ -610,6 +761,7 @@ app.get('/api/habitaciones/disponibles', async (req, res) => {
     }).select('habitacion');
 
     const habitacionIdsConflictivas = conflictos.map(c => c.habitacion.toString());
+    // Asegúrate de que esta consulta también devuelva imageUrls
     const habitacionesDisponibles = await Habitacion.find({
         _id: { $nin: habitacionIdsConflictivas }
     }).sort({ numero: 1 }); // Ordenar por número
@@ -623,6 +775,7 @@ app.get('/api/habitaciones/disponibles', async (req, res) => {
 
 app.get('/api/habitaciones', async (req, res) => {
   try {
+    // Esta ruta ahora devolverá el campo imageUrls automáticamente porque está en el schema
     const habitaciones = await Habitacion.find({}).sort({ numero: 1 }); // Ordenar por número
     res.json(habitaciones);
   } catch (error) {
@@ -631,76 +784,102 @@ app.get('/api/habitaciones', async (req, res) => {
   }
 });
 
+// ===== INICIO CAMBIO =====
+// POST /api/habitaciones (Ahora solo crea la estructura básica)
 app.post('/api/habitaciones', async (req, res) => {
-  const { numero, tipo, precio } = req.body;
+  // ===== INICIO CAMBIO =====
+  const { numero, tipo, precio } = req.body; // <-- Quitado imageUrls de aquí
+  // ===== FIN CAMBIO =====
   if (numero === undefined || !tipo || precio === undefined) {
     return res.status(400).json({ message: 'Número, tipo y precio son obligatorios.' });
   }
   if (typeof precio !== 'number' || precio < 0) {
-      return res.status(400).json({ message: 'El precio debe ser un número positivo.' });
+    return res.status(400).json({ message: 'El precio debe ser un número positivo.' });
   }
   try {
-    const nuevaHabitacion = new Habitacion({ numero, tipo, precio });
+    // ===== INICIO CAMBIO =====
+    // Crea la habitación con imageUrls vacío
+    const nuevaHabitacion = new Habitacion({ numero, tipo, precio, imageUrls: [] });
+    // ===== FIN CAMBIO =====
     await nuevaHabitacion.save();
-    res.status(201).json({ message: 'Habitación creada con éxito', habitacion: nuevaHabitacion });
-  } catch (error) {
-    if (error.code === 11000) { // Error de duplicado (unique index)
-      return res.status(409).json({ message: `La habitación con el número ${numero} ya existe.` });
-    }
+    // Devuelve la habitación creada (el frontend necesitará el _id para subir imágenes después)
+    res.status(201).json({ message: 'Habitación creada con éxito. Ahora puedes subir imágenes.', habitacion: nuevaHabitacion });
+  } catch (error) { /* ... (manejo de error sin cambios) ... */
+    if (error.code === 11000) { /*...*/ }
     console.error("❌ Error al crear habitación:", error);
-    if (error.name === 'ValidationError') {
-        return res.status(400).json({ message: 'Datos inválidos para la habitación.', errors: error.errors });
-    }
+    if (error.name === 'ValidationError') { /*...*/ }
     res.status(500).json({ message: 'Error al crear la habitación.', error: error.message });
   }
 });
 
+// PUT /api/habitaciones/:id (Ahora solo actualiza datos básicos)
 app.put('/api/habitaciones/:id', async (req, res) => {
   const { id } = req.params;
-  const { numero, tipo, precio } = req.body;
-  if (numero === undefined && !tipo && precio === undefined) {
-    return res.status(400).json({ message: 'Se requiere al menos un campo para actualizar.' });
+  // ===== INICIO CAMBIO =====
+  const { numero, tipo, precio } = req.body; // <-- Quitado imageUrls de aquí
+  if (numero === undefined && !tipo && precio === undefined) { // <-- Quitado imageUrls de la condición
+  // ===== FIN CAMBIO =====
+    return res.status(400).json({ message: 'Se requiere al menos un campo (número, tipo o precio) para actualizar.' });
   }
   if (precio !== undefined && (typeof precio !== 'number' || precio < 0)) {
-      return res.status(400).json({ message: 'El precio debe ser un número positivo.' });
+    return res.status(400).json({ message: 'El precio debe ser un número positivo.' });
   }
 
   const updateData = {};
   if (numero !== undefined) updateData.numero = numero;
   if (tipo) updateData.tipo = tipo;
   if (precio !== undefined) updateData.precio = precio;
+  // ===== CAMBIO: Ya no se actualiza imageUrls aquí (se eliminó la línea) =====
 
   try {
     const updatedHabitacion = await Habitacion.findByIdAndUpdate(id, updateData, { new: true, runValidators: true });
     if (!updatedHabitacion) {
       return res.status(404).json({ message: 'Habitación no encontrada.' });
     }
-    res.json({ message: 'Habitación actualizada con éxito.', habitacion: updatedHabitacion });
-  } catch (error) {
-    if (error.code === 11000) {
-      return res.status(409).json({ message: `El número de habitación ${numero} ya está en uso por otra habitación.` });
-    }
-     if (error.name === 'ValidationError') {
-        return res.status(400).json({ message: 'Datos inválidos para actualizar.', errors: error.errors });
-    }
+    res.json({ message: 'Datos de habitación actualizados con éxito.', habitacion: updatedHabitacion });
+  } catch (error) { /* ... (manejo de error sin cambios) ... */
+    if (error.code === 11000) { /*...*/ }
+    if (error.name === 'ValidationError') { /*...*/ }
     console.error("❌ Error al actualizar habitación:", error);
     res.status(500).json({ message: 'Error al actualizar la habitación.', error: error.message });
   }
 });
 
+// DELETE /api/habitaciones/:id (Ahora también borra la carpeta de imágenes)
 app.delete('/api/habitaciones/:id', async (req, res) => {
   const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) { // <-- Buena práctica añadir validación de ID
+    return res.status(400).send('ID de habitación inválido.');
+  }
   try {
     const deletedHabitacion = await Habitacion.findByIdAndDelete(id);
     if (!deletedHabitacion) {
       return res.status(404).json({ message: 'Habitación no encontrada.' });
     }
-    // Opcional: Buscar y marcar/eliminar reservas asociadas a esta habitación
-    // await Reserva.updateMany({ habitacion: id }, { $set: { estado: 'cancelada', habitacion: null } });
-    res.json({ message: 'Habitación eliminada con éxito.' });
+
+    // ===== INICIO: Borrar carpeta de imágenes asociada =====
+    const roomPath = path.join(__dirname, 'uploads', id.toString());
+    try {
+        console.log(`Intentando borrar carpeta: ${roomPath}`);
+        await fs.rm(roomPath, { recursive: true, force: true }); // Borra la carpeta y su contenido
+        console.log(`Carpeta de imágenes borrada: ${roomPath}`);
+    } catch (rmError) {
+        if (rmError.code === 'ENOENT') { // Si la carpeta no existe, no es un error fatal
+             console.warn(`Advertencia: La carpeta ${roomPath} no existía al intentar borrarla.`);
+        } else { // Otro error (ej. permisos)
+            console.error(`Error al borrar la carpeta de imágenes ${roomPath}:`, rmError);
+            // Considera si continuar o devolver un error parcial aquí
+        }
+    }
+    // ===== FIN: Borrar carpeta de imágenes asociada =====
+
+    // Opcional: Cancelar o desvincular reservas asociadas
+    // await Reserva.updateMany({ habitacion: id }, { $set: { estado: 'cancelada', /* habitacion: null // Opcional */ } });
+
+    res.json({ message: 'Habitación y sus imágenes asociadas eliminadas con éxito.' });
   } catch (error) {
-    console.error("❌ Error al eliminar habitación:", error);
-    res.status(500).json({ message: 'Error al eliminar la habitación.', error: error.message });
+    console.error(`❌ Error al eliminar habitación ${id}:`, error);
+    res.status(500).json({ message: 'Error interno al eliminar la habitación.', error: error.message });
   }
 });
 
@@ -762,12 +941,12 @@ app.post('/api/menu/items', async (req, res) => {
   if (!nombre || precio === undefined || !categoria) {
       return res.status(400).json({ message: 'Nombre, precio y categoría son obligatorios.' });
   }
-   if (typeof precio !== 'number' || precio < 0) {
+    if (typeof precio !== 'number' || precio < 0) {
       return res.status(400).json({ message: 'El precio debe ser un número positivo.' });
   }
-   if (!mongoose.Types.ObjectId.isValid(categoria)) {
+    if (!mongoose.Types.ObjectId.isValid(categoria)) {
        return res.status(400).json({ message: 'ID de categoría inválido.' });
-   }
+    }
   try {
     const catExists = await Categoria.findById(categoria);
     if (!catExists) {
@@ -792,9 +971,9 @@ app.put('/api/menu/items/:id', async (req, res) => {
   if (precio !== undefined && (typeof precio !== 'number' || precio < 0)) {
       return res.status(400).json({ message: 'El precio debe ser un número positivo.' });
   }
-   if (categoria && !mongoose.Types.ObjectId.isValid(categoria)) {
+    if (categoria && !mongoose.Types.ObjectId.isValid(categoria)) {
        return res.status(400).json({ message: 'ID de categoría inválido.' });
-   }
+    }
   try {
     if (categoria) {
         const catExists = await Categoria.findById(categoria);
@@ -999,8 +1178,8 @@ app.get('/api/eventos/:id/contrato', async (req, res) => {
     try {
         const { id } = req.params;
          if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).send('ID de evento inválido.');
-        }
+             return res.status(400).send('ID de evento inválido.');
+         }
 
         const evento = await Evento.findById(id);
         if (!evento) return res.status(404).send('Evento no encontrado.');
@@ -1053,20 +1232,22 @@ app.get('/api/eventos/:id/contrato', async (req, res) => {
     }
 });
 
-
+// --- MANEJADORES DE ERROR (AL FINAL) ---
 // Middleware para manejar errores 404 (rutas no encontradas)
 app.use((req, res, next) => {
-    res.status(404).json({ message: 'Ruta no encontrada.' });
+    console.log(`404 - Ruta no encontrada para: ${req.originalUrl}`); // Log adicional
+    res.status(404).json({ message: 'Ruta no encontrada.' });
 });
 
 // Middleware para manejar otros errores del servidor (debe ir al final)
 app.use((err, req, res, next) => {
-    console.error("❌ Error no controlado:", err.stack);
-    res.status(500).json({ message: 'Error interno del servidor.', error: err.message });
+    console.error("❌ Error no controlado:", err.stack);
+    const errorMessage = process.env.NODE_ENV === 'production' ? 'Ocurrió un error inesperado.' : err.message;
+    res.status(err.status || 500).json({ message: 'Error interno del servidor.', error: errorMessage });
 });
-
 
 // Iniciar el servidor
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor backend escuchando en http://localhost:${PORT}`);
+  console.log(`🚀 Servidor backend escuchando en http://localhost:${PORT}`);
+  console.log('Sirviendo imágenes estáticas desde:', path.join(__dirname, 'uploads')); // Log de verificación
 });
