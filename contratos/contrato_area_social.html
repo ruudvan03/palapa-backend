@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Contrato de Arrendamiento - Área Social</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            margin: 2cm;
+            color: #333333;
+            line-break: auto;
+        }
+        .logo-container {
+             text-align: center;
+             margin-bottom: 25px;
+             border-bottom: 1px solid #E0E0E0;
+             padding-bottom: 20px;
+        }
+        .logo-container img {
+             max-height: 70px;
+             width: auto;
+        }
+        h1 {
+            font-size: 13pt;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 25px;
+            color: #000;
+        }
+        h2 {
+            font-size: 12pt;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 25px;
+            margin-bottom: 20px;
+            color: #000;
+        }
+        p {
+            text-align: justify;
+            margin-bottom: 1em;
+        }
+        
+        .declaration-block {
+            margin-bottom: 10px;
+        }
+        .declaration-block strong {
+            color: #000;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        ol.clausulas {
+            padding-left: 0;
+            list-style: none;
+            counter-reset: clausula-counter;
+        }
+        ol.clausulas li {
+            counter-increment: clausula-counter;
+            margin-bottom: 1.5em;
+            text-align: justify;
+            page-break-inside: avoid;
+        }
+        ol.clausulas li strong.clausula-title {
+            font-weight: bold;
+            color: #000;
+            display: block;
+            margin-bottom: 5px;
+        }
+        ol.clausulas li strong.clausula-title::before {
+             content: counter(clausula-counter, upper-latin) ". "; /* O usa upper-roman */
+             margin-right: 5px;
+        }
+
+        strong {
+            font-weight: bold;
+            color: #000;
+        }
+        
+        .fill-in { /* Para valores dinámicos */
+            font-weight: bold;
+            padding: 0 2px;
+        }
+        .placeholder-line { /* Para valores fijos o no disponibles */
+             display: inline-block;
+             margin: 0 5px;
+             font-weight: normal;
+             color: #555;
+        }
+
+        .signature-section {
+            margin-top: 80px;
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+        }
+        .signature-line {
+            text-align: center;
+            width: 45%;
+        }
+        .signature-line p {
+            border-top: 1px solid #000;
+            padding-top: 8px;
+            margin-top: 70px;
+            text-align: center;
+            font-size: 10pt;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="logo-container">
+        <img src="logo-lacasona.png" alt="Logo La Casona">
+    </div>
+
+    <h1>CONTRATO DE ARRENDAMIENTO</h1>
+
+    <p>
+        CONTRATO DE ARRENDAMIENTO que celebran, por una parte, <strong>MARIA MAGDALENA CRUZ GARCIA</strong> en su carácter de <strong>ARRENDADOR</strong>, y por la otra, <strong class="fill-in">{{cliente}}</strong> en su carácter de <strong>ARRENDATARIO</strong>, al tenor de las siguientes Declaraciones y Cláusulas:
+    </p>
+
+    <h2>DECLARACIONES</h2>
+
+    <div class="declaration-block">
+        <strong>I. Declara EL ARRENDADOR:</strong>
+        Ser el legítimo propietario y tener la libre disposición del inmueble ubicado en Carretera Costera 200, Llano Grande, 70947 San Pedro Pochutla, Oax. Tener la capacidad legal y las facultades suficientes para celebrar el presente contrato.
+    </div>
+    <div class="declaration-block">
+        <strong>II. Declara EL ARRENDATARIO:</strong>
+        Ser mayor de edad y contar con la capacidad legal para obligarse en los términos del presente contrato. Que ha inspeccionado el Área Social objeto del arrendamiento y la encuentra en condiciones óptimas para el uso pactado.
+    </div>
+
+    <h2>CLÁUSULAS</h2>
+
+    <ol class="clausulas">
+        <li>
+            <strong class="clausula-title">OBJETO DEL CONTRATO.</strong>
+            EL ARRENDADOR otorga en arrendamiento temporal a EL ARRENDATARIO las siguientes áreas del inmueble ubicado en Carretera Costera 200, Llano Grande, 70947 San Pedro Pochutla, Oax.: <span class="fill-in">{{area}}</span> (Palapa/Área de Eventos, Alberca y Cocina de Servicio).
+        </li>
+        <li>
+            <strong class="clausula-title">VIGENCIA Y USO PACTADO.</strong>
+            La vigencia del presente Contrato se limita a un solo evento, iniciando a las <span class="fill-in">{{horaInicio}}</span> del día <span class="fill-in">{{fechaEvento}}</span> y finalizando, improrrogablemente, a las <span class="fill-in">{{horaFin}}</span> del mismo día.
+            El área rentada será utilizada exclusivamente para: <span class="fill-in">{{usoEspecifico}}</span>.
+            </li>
+        <li>
+            <strong class="clausula-title">PRECIO Y FORMA DE PAGO.</strong>
+            Renta Total: EL ARRENDATARIO se obliga a pagar por el uso la cantidad total de <span class="fill-in">${{monto}} MXN</span>.
+            Forma de Pago: La Renta se liquida mediante pago en efectivo o transferencia. Se requiere un Anticipo del 50% del precio acordado.
+        </li>
+        <li>
+            <strong class="clausula-title">OBLIGACIONES DEL ARRENDATARIO.</strong>
+            EL ARRENDATARIO se obliga a:
+            Límite de Asistentes: No exceder el número máximo de <span class="fill-in">{{limiteAsistentes}}</span> asistentes al evento.
+            Cuidado y Mantenimiento: Hacer uso de las áreas y mobiliario de manera responsable. Se prohíbe el uso de confeti, pirotecnia o clavos en las paredes de la palapa.
+            Daños: Asumir la responsabilidad total y exclusiva por cualquier daño o deterioro que sufra el inmueble, la alberca, la cocina, o el mobiliario, causado por él mismo, sus invitados o proveedores.
+            Limpieza: Entregar las áreas rentadas en las mismas condiciones de orden y limpieza en que fueron recibidas. (Por un costo adicional de $500, se puede hacer su limpieza al final del evento, además, nos hacemos responsables de tirar su basura).
+        </li>
+        <li>
+            <strong class="clausula-title">SERVICIOS INCLUIDOS Y CONSUMO DE ENERGÍA.</strong>
+            El costo de la Renta incluye el uso normal de los servicios básicos de agua y electricidad. Se considera consumo normal el necesario para la iluminación y el sistema de filtrado de la alberca. EL ARRENDATARIO se compromete a hacer un uso racional de dichos servicios.
+        </li>
+        <li>
+            <strong class="clausula-title">EXCLUSIÓN DE RESPONSABILIDAD.</strong>
+            EL ARRENDATARIO acepta y reconoce que el uso de la Alberca, la Cocina y la Palapa es bajo su <strong>exclusivo riesgo y responsabilidad</strong>. EL ARRENDADOR no se hace responsable por cualquier tipo de lesión corporal, accidente, robo, daño material o pérdida que sufran EL ARRENDATARIO o sus invitados dentro o fuera de las áreas rentadas. EL ARRENDATARIO asume toda la responsabilidad civil y penal que pudiera derivarse del uso de las instalaciones.
+        </li>
+        <li>
+            <strong class="clausula-title">DERECHO DE INSPECCIÓN.</strong>
+            EL ARRENDADOR o su representante tendrá el derecho de ingresar al área rentada en cualquier momento durante la vigencia del evento con el único propósito de verificar el cumplimiento de las cláusulas del presente contrato, sin que esto suponga una perturbación indebida al evento.
+        </li>
+        <li>
+            <strong class="clausula-title">CANCELACIÓN Y PENALIZACIONES.</strong>
+            Si EL ARRENDATARIO cancela la reservación, EL ARRENDADOR retendrá el 50% de la Renta total como penalización. Si el evento se cancela por causas de fuerza mayor (desastres naturales, disposiciones oficiales), se buscará una fecha de reprogramación en común acuerdo.
+        </li>
+        <li>
+            <strong class="clausula-title">CAUSAS DE RESCISIÓN (TERMINACIÓN ANTICIPADA).</strong>
+            EL ARRENDADOR podrá rescindir este contrato de manera inmediata si EL ARRENDATARIO: a) Excede el límite de personas pactado. b) Causa daños graves o intencionales al inmueble. c) Incumple de forma flagrante y repetitiva la Cláusula de Ruido. d) Utiliza el área para un propósito distinto al establecido en la Cláusula Segunda.
+        </li>
+        <li>
+            <strong class="clausula-title">JURISDICCIÓN.</strong>
+            Para la interpretación y cumplimiento de este contrato, las partes se someten expresamente a la jurisdicción de los tribunales competentes en San Pedro Pochutla, Oaxaca, renunciando a cualquier otro fuero que pudiera corresponderles.
+        </li>
+    </ol>
+    
+    <p>Leído el presente contrato y enteradas las partes de su contenido y alcance, lo firman por duplicado en San Pedro Pochutla, Oaxaca a {{fechaActual}}.</p>
+
+
+    <div class="signature-section">
+        <div class="signature-line">
+            <p>EL ARRENDADOR<br>MARIA MAGDALENA CRUZ GARCIA</p>
+        </div>
+        <div class="signature-line">
+            <p>EL ARRENDATARIO<br>{{cliente}}</p>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -2,112 +2,236 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Contrato de Hospedaje</title>
+    <title>Contrato de Hospedaje - Palapa La Casona</title>
     <style>
         body {
-            font-family: 'Times New Roman', Times, serif;
-            font-size: 12pt;
-            line-height: 1.5;
-            margin: 2.5cm;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11pt;
+            line-height: 1.5; /* Ajusta si es necesario */
+            margin: 2cm;
+            color: #333333;
+            line-break: auto; /* Evita cortes extraños */
         }
-        h1, h2 {
+
+        .logo-container {
+             text-align: center;
+             margin-bottom: 25px;
+             border-bottom: 1px solid #E0E0E0;
+             padding-bottom: 20px;
+        }
+        .logo-container img {
+             max-height: 70px;
+             width: auto;
+        }
+
+        h1 { /* Título principal */
+            font-size: 13pt;
+            font-weight: bold;
             text-align: center;
-            margin: 0;
-            padding: 0;
+            margin-bottom: 25px;
+            color: #000;
         }
-        h1 {
-            font-size: 14pt;
-            margin-bottom: 20px;
-        }
-        h2 {
+
+        h2 { /* Título "CLÁUSULAS" */
             font-size: 12pt;
+            font-weight: bold;
+            text-align: center;
             margin-top: 25px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
+            color: #000;
         }
+
         p {
             text-align: justify;
-            margin-bottom: 1em;
+            margin-bottom: 1em; /* Espacio después de párrafos */
         }
-        ol {
-            padding-left: 0;
-            list-style-position: inside;
+
+        /* Bloques de ARRENDADOR y HUÉSPED */
+        .parties {
+            margin-bottom: 20px;
+            font-size: 11pt;
         }
-        li {
-            margin-bottom: 1em;
+        .party-block {
+            margin-bottom: 10px;
         }
-        strong {
+        .party-block strong.party-title { /* A. EL ARRENDADOR / B. EL HUÉSPED */
+            color: #000;
             font-weight: bold;
         }
-        .signature-section {
-            margin-top: 100px;
+        .party-block span.label { /* "Nombre del Establecimiento:", "Nombre Completo:" */
+            display: inline-block;
+            width: 180px; /* Ajusta el ancho si es necesario */
+        }
+        .party-block span.value { /* El valor, ej. "Palapa La Casona" */
+            font-weight: bold;
+        }
+        .centered-y { /* Para la "Y" entre las partes */
             text-align: center;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+
+        /* Lista de Cláusulas */
+        ol.clausulas {
+            padding-left: 0;
+            list-style: none;
+            counter-reset: clausula-counter; /* Prepara un contador */
+        }
+        ol.clausulas li {
+            counter-increment: clausula-counter; /* Incrementa el contador */
+            margin-bottom: 1.5em;
+            text-align: justify;
+            page-break-inside: avoid; /* Evita que se corte una cláusula entre páginas */
+        }
+        ol.clausulas li strong.clausula-title { /* Título de la cláusula */
+            font-weight: bold;
+            color: #000;
+            display: block;
+            margin-bottom: 5px;
+        }
+         /* Añadir numeración romana automática antes del título */
+        ol.clausulas li strong.clausula-title::before {
+             content: counter(clausula-counter, upper-roman) ". "; /* Ej: I. , II. */
+             margin-right: 5px;
+        }
+
+        /* Texto resaltado dentro de párrafos/cláusulas */
+        strong {
+            font-weight: bold;
+            color: #000;
+        }
+
+        /* Párrafo de aceptación */
+        .acceptance {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 40px;
+            font-size: 10pt;
+        }
+
+        /* Sección de Firmas */
+        .signature-section {
+            margin-top: 80px;
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
         }
         .signature-line {
-            display: inline-block;
-            width: 250px;
             text-align: center;
-            margin: 0 50px;
+            width: 45%; /* Ancho de cada columna de firma */
         }
         .signature-line p {
             border-top: 1px solid #000;
-            padding-top: 5px;
-            margin-top: 60px;
+            padding-top: 8px;
+            margin-top: 70px; /* Espacio para la firma */
             text-align: center;
+            font-size: 10pt;
+            color: #333;
         }
+
+        /* Para valores dinámicos */
+        .fill-in {
+            font-weight: bold;
+            /* text-decoration: underline; Puedes descomentar si quieres subrayado */
+            padding: 0 2px;
+        }
+        /* Para valores fijos o no disponibles */
+        .placeholder-line {
+             display: inline-block;
+             /* width: 150px; Puedes ajustar si necesitas líneas vacías */
+             /* border-bottom: 1px solid #555; */
+             margin: 0 5px;
+             text-align: center;
+             font-weight: normal;
+             color: #555;
+        }
+
     </style>
 </head>
 <body>
 
-    <h1>CONTRATO DE PRESTACIÓN DE SERVICIOS DE HOSPEDAJE</h1>
+    <div class="logo-container">
+        <img src="logo-lacasona.png" alt="Logo La Casona">
+    </div>
 
-    <p>
-        CONTRATO DE PRESTACIÓN DE SERVICIOS DE HOSPEDAJE QUE CELEBRAN, POR UNA PARTE, <strong>PALAPA LA CASONA</strong>, A QUIEN EN LO SUCESIVO SE LE DENOMINARÁ "EL PRESTADOR", Y POR LA OTRA, EL HUÉSPED CUYO NOMBRE SE ESPECIFICA MÁS ADELANTE, A QUIEN EN LO SUCESIVO SE LE DENOMINARÁ "EL HUÉSPED".
-    </p>
+    <h1>CONTRATO DE HOSPEDAJE TEMPORAL (HOTEL/ALOJAMIENTO)</h1>
 
-    <h2>DECLARACIONES</h2>
+    <p>Celebrado entre:</p>
 
-    <p>
-        <strong>I.- Declara "EL PRESTADOR":</strong> Ser una entidad con plena capacidad para ofrecer servicios de hospedaje, con domicilio fiscal en Carretera Costera 200, Llano Grande, 70947 San Pedro Pochutla, Oax.
-    </p>
-    <p>
-        <strong>II.- Declara "EL HUÉSPED":</strong> Llamarse <strong>{{nombreHuesped}}</strong>, y contar con la capacidad legal y económica para celebrar el presente contrato y obligarse en los términos del mismo.
-    </p>
+    <div class="parties">
+        <div class="party-block">
+            <strong class="party-title">A. EL ARRENDADOR:</strong><br>
+            <span class="label">Nombre del Establecimiento:</span> <span class="value">Palapa “La Casona”</span><br>
+            <span class="label">Representante Legal:</span> <span class="value">María Magdalena Cruz García</span>
+        </div>
 
-    <p>
-        Ambas partes se reconocen mutuamente la capacidad con la que comparecen y convienen en celebrar el presente Contrato al tenor de las siguientes:
-    </p>
+        <p class="centered-y">Y</p>
+
+        <div class="party-block">
+            <strong class="party-title">B. EL HUÉSPED (El Arrendatario Temporal):</strong><br>
+            <span class="label">Nombre Completo:</span> <span class="value">{{nombreHuesped}}</span><br>
+            <span class="label">Teléfono de Contacto:</span> <span class="value">{{telefonoHuesped}}</span> </div>
+    </div>
 
     <h2>CLÁUSULAS</h2>
 
-    <ol>
+    <ol class="clausulas">
         <li>
-            <strong>PRIMERA.- OBJETO.</strong> "EL PRESTADOR" se obliga a proporcionar a "EL HUÉSPED" el servicio de hospedaje en la habitación y bajo las condiciones especificadas en este contrato.
+            <strong class="clausula-title">OBJETO Y ALCANCE.</strong>
+            EL ARRENDADOR otorga en arrendamiento temporal a EL HUÉSPED el uso de la habitación <span class="fill-in">{{nombreHabitacion}}</span> con los servicios inherentes al hospedaje. Este contrato se rige bajo la legislación de arrendamiento mercantil y los reglamentos de hotelería aplicables.
         </li>
         <li>
-            <strong>SEGUNDA.- VIGENCIA.</strong> El presente contrato tendrá una vigencia a partir del día <strong>{{fechaInicio}}</strong> y hasta el día <strong>{{fechaFin}}</strong>.
+            <strong class="clausula-title">VIGENCIA Y TARIFA.</strong>
+            Vigencia: El hospedaje inicia el día <span class="fill-in">{{fechaInicio}}</span> a partir de las 12:00 pm y finalizará el día <span class="fill-in">{{fechaFin}}</span> a más tardar a las 11:00 am.
+            El importe total de la estancia es de <span class="fill-in">${{precioTotal}} MXN</span>.
+            Extensión: Toda prolongación de la estancia deberá ser solicitada con al menos 12 horas de anticipación y estará sujeta a la disponibilidad del hotel y al pago de la tarifa vigente. La falta de desocupación a la hora límite generará un cargo adicional de una noche completa.
         </li>
         <li>
-            <strong>TERCERA.- PRECIO Y FORMA DE PAGO.</strong> El precio total por los servicios de hospedaje es la cantidad de <strong>${{precioTotal}} MXN</strong>. El método de pago acordado es: {{tipoPago}}.
+            <strong class="clausula-title">USO Y OCUPACIÓN.</strong>
+            Uso Exclusivo: La habitación se utilizará exclusivamente para el descanso y alojamiento temporal. Queda prohibido utilizarla para actividades comerciales, subarrendamiento o actos ilícitos.
+            Capacidad Máxima: La ocupación máxima de la habitación es de <span class="fill-in">{{capacidadMaxima}}</span> personas.
+            Se prohíbe el ingreso de personas adicionales no registradas después de las 20:00 hrs. Mascotas: No se permiten mascotas.
         </li>
         <li>
-            <strong>CUARTA.- OBLIGACIONES DEL HUÉSPED.</strong> "EL HUÉSPED" se obliga a: a) Conducirse con decencia y moralidad dentro de las instalaciones; b) Cuidar y mantener en buen estado el mobiliario y la propiedad; c) No realizar actividades ilícitas; d) Respetar el reglamento interno del establecimiento.
+            <strong class="clausula-title">DEPÓSITO DE GARANTÍA Y DAÑOS.</strong>
+            Responsabilidad por Daños: EL HUÉSPED es responsable de cualquier daño o deterioro causado al mobiliario, equipos o la estructura de la habitación por él o sus acompañantes. El costo de reparación o reemplazo deberá ser cubierto inmediatamente por EL HUÉSPED.
+            Objetos de Valor: EL ARRENDADOR no se hace responsable por la pérdida, robo o extravío de objetos de valor dejados fuera de la caja de seguridad de la habitación.
         </li>
         <li>
-            <strong>QUINTA.- OBLIGACIONES DEL PRESTADOR.</strong> "EL PRESTADOR" se obliga a: a) Proporcionar la habitación reservada en condiciones de higiene y funcionalidad; b) Garantizar la seguridad y tranquilidad de "EL HUÉSPED" durante su estancia.
+            <strong class="clausula-title">REGLAS DE CONVIVENCIA Y SILENCIO.</strong>
+            Ruido: EL HUÉSPED se obliga a mantener un nivel de ruido bajo entre las <strong>22:00 hrs</strong> y las <strong>07:00 hrs</strong> (horas de silencio) para respetar el descanso de los demás ocupantes.
+            Fumar: Queda estrictamente prohibido fumar dentro de la habitación, incluyendo el uso de cigarrillos electrónicos. Uso de Áreas Comunes: El uso de las áreas comunes (alberca,) está sujeto al reglamento de cada área.
         </li>
         <li>
-            <strong>SEXTA.- JURISDICCIÓN.</strong> Para la interpretación y cumplimiento del presente contrato, las partes se someten a la jurisdicción de los tribunales competentes de la ciudad de San Pedro Pochutla, Oaxaca, renunciando a cualquier otro fuero que pudiera corresponderles.
-        </p>
+            <strong class="clausula-title">TERMINACIÓN ANTICIPADA Y DERECHO DE ADMISIÓN.</strong>
+            EL ARRENDADOR podrá dar por terminado el contrato de manera inmediata, solicitando el desalojo de la habitación, sin derecho a reembolso, si EL HUÉSPED: a) Realiza actos inmorales o ilícitos dentro del establecimiento. b) Causa disturbios graves o reitera el incumplimiento de la cláusula de ruido. c) Se niega a pagar los consumos o daños generados.
+        </li>
+        <li>
+            <strong class="clausula-title">EXCLUSIÓN DE RESPONSABILIDAD POR LESIONES Y ACCIDENTES.</strong>
+            EL HUÉSPED acepta que el uso de todas las instalaciones del hotel, incluyendo (pero no limitándose a) escaleras, alberca ó cualquier área común, es bajo su <strong>exclusivo riesgo y responsabilidad</strong>. EL ARRENDADOR no se hace responsable por lesiones corporales, accidentes, incapacidad temporal o permanente, o el fallecimiento de EL HUÉSPED o sus acompañantes, siempre que estos no sean resultado directo de negligencia grave o dolo por parte del personal del hotel. EL HUÉSPED deslinda al hotel de cualquier responsabilidad civil, penal o administrativa derivada de tales incidentes.
+        </li>
+        <li>
+            <strong class="clausula-title">DESLINDE POR VEHÍCULOS Y BIENES PERSONALES.</strong>
+            EL ARRENDADOR no asume responsabilidad alguna por daños parciales, robo total o robo de autopartes de los vehículos de EL HUÉSPED o sus visitantes estacionados en las instalaciones del hotel (incluyendo el área de estacionamiento). De igual forma, EL ARRENDADOR no se hace responsable por la pérdida, robo o extravío de pertenencias u objetos de valor dejados a la vista o dentro del vehículo. La vigilancia del vehículo y sus contenidos es responsabilidad exclusiva de EL HUÉSPED.
+        </li>
+        <li>
+            <strong class="clausula-title">JURISDICCIÓN.</strong>
+            Las partes se someten a la jurisdicción de los tribunales competentes en San Pedro Pochutla, Oaxaca para cualquier controversia.
+        </li>
     </ol>
 
-    <p>Leído el presente contrato y enteradas las partes de su contenido y alcance, lo firman por duplicado.</p>
+    <p class="acceptance">
+        HE LEÍDO Y ACEPTO LAS CLÁUSULAS DE ESTE CONTRATO.
+        <br>
+        San Pedro Pochutla, Oaxaca a {{fechaActual}}.
+    </p>
 
     <div class="signature-section">
         <div class="signature-line">
-            <p>"EL PRESTADOR"<br>Palapa La Casona</p>
+            <p>EL ARRENDADOR<br>MARIA MAGDALENA CRUZ GARCIA</p>
         </div>
         <div class="signature-line">
-            <p>"EL HUÉSPED"<br>{{nombreHuesped}}</p>
+            <p>EL HUÉSPED<br>{{nombreHuesped}}</p>
         </div>
     </div>
 
