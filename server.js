@@ -22,8 +22,9 @@ app.use(cors());
 app.use(express.json());
 
 // Middleware para servir archivos estáticos (ANTES del 404)
-app.use('/images/habitaciones', express.static(path.join(__dirname, 'uploads')));
-
+console.log('>>> Sirviendo archivos estáticos para /images desde:', path.join(__dirname, 'uploads')); // Log de verificación
+app.use('/images', express.static(path.join(__dirname, 'uploads'))); 
+// Servir toda la carpeta 'uploads' desde '/images'
 // *******************************************************************
 // 1. CONFIGURACIÓN DE EMAIL
 // *******************************************************************
@@ -637,46 +638,64 @@ app.get('/api/users-list', async (req, res) => {
 // Faltarían rutas para CRUD de usuarios (POST, PUT, DELETE) si se necesita gestionarlos desde el panel
 
 // Rutas de Habitaciones
-
+// ===== RUTA MODIFICADA para Subir Imágenes de Habitación =====
 app.post('/api/upload/room-images/:roomId', upload.array('images', 10), async (req, res) => {
     const { roomId } = req.params;
-    console.log(`Recibida petición POST a /api/upload/room-images/${roomId}`);
+    console.log(`[Upload] Recibida petición POST para habitación: ${roomId}`); // Log Entrada
+
     if (!mongoose.Types.ObjectId.isValid(roomId)) {
         return res.status(400).json({ message: 'ID de habitación inválido.' });
     }
+
     try {
         if (!req.files || req.files.length === 0) {
-            console.warn(`No se recibieron archivos para la habitación ${roomId}`);
+            console.warn(`[Upload] No se recibieron archivos para ${roomId}`);
             return res.status(400).json({ message: 'No se subieron archivos.' });
         }
-        console.log(`Archivos recibidos para ${roomId}:`, req.files.map(f => f.filename));
-        const uploadedImageUrls = req.files.map(file => `/images/habitaciones/${roomId}/${file.filename}`);
-        console.log(`URLs generadas para ${roomId}:`, uploadedImageUrls);
+        console.log(`[Upload] Archivos recibidos para ${roomId}:`, req.files.map(f => f.filename));
+
+        // Construir las URLs públicas (asegúrate que el formato sea correcto)
+        const uploadedImageUrls = req.files.map(file =>
+            `/images/${roomId}/${file.filename}` // Formato sin /habitaciones
+        );
+        console.log(`[Upload] URLs generadas para ${roomId}:`, uploadedImageUrls);
+
+        // --- Punto Crítico: Actualización de la Base de Datos ---
+        console.log(`[Upload] Intentando añadir URLs a la habitación ${roomId} en MongoDB...`);
         const updatedRoom = await Habitacion.findByIdAndUpdate(
             roomId,
+            // Operador $push con $each para añadir múltiples elementos al array imageUrls
             { $push: { imageUrls: { $each: uploadedImageUrls } } },
-            { new: true }
+            { new: true, runValidators: true } // runValidators es buena práctica, new devuelve el doc actualizado
         );
+        // --- Fin Punto Crítico ---
+
+        // Verificar si la actualización fue exitosa
         if (!updatedRoom) {
-            console.error(`Habitación ${roomId} no encontrada después de intentar añadir URLs.`);
+            console.error(`[Upload] Error Crítico: Habitación ${roomId} no encontrada en MongoDB después de intentar añadir URLs.`);
+            // Intentar borrar las imágenes recién subidas si la habitación no existe
             try {
                 for (const file of req.files) {
                     const orphanPath = path.join(__dirname, 'uploads', roomId.toString(), file.filename);
                     await fs.unlink(orphanPath);
-                    console.log(`Archivo huérfano borrado: ${orphanPath}`);
+                    console.log(`[Upload] Archivo huérfano borrado: ${orphanPath}`);
                 }
             } catch (unlinkErr) {
-                console.error(`Error al borrar archivos huérfanos para habitación ${roomId} no encontrada:`, unlinkErr);
+                console.error(`[Upload] Error al borrar archivos huérfanos para ${roomId}:`, unlinkErr);
             }
             return res.status(404).json({ message: 'Habitación no encontrada para añadir imágenes.' });
         }
-        console.log(`Imágenes añadidas a la habitación ${roomId}. URLs actualizadas:`, updatedRoom.imageUrls);
+
+        // Si la actualización SÍ funcionó
+        console.log(`[Upload] Éxito: URLs añadidas a ${roomId}. Array actualizado:`, updatedRoom.imageUrls);
         res.status(200).json({
             message: `${req.files.length} imágenes subidas y añadidas con éxito.`,
-            imageUrls: updatedRoom.imageUrls
+            imageUrls: updatedRoom.imageUrls // Devuelve el array completo actualizado
         });
+
     } catch (error) {
-        console.error(`❌ Error general al procesar subida para habitación ${roomId}:`, error);
+        console.error(`[Upload] ❌ Error general al procesar subida para ${roomId}:`, error);
+        // Manejo errores específicos de Multer (pueden ocurrir antes del try)
         if (error instanceof multer.MulterError) {
             return res.status(400).json({ message: `Error de Multer: ${error.message}` });
         } else if (error.message.includes('Formato de imagen no soportado')) {
@@ -684,49 +703,49 @@ app.post('/api/upload/room-images/:roomId', upload.array('images', 10), async (r
         } else if (error.message.includes('ID de habitación inválido')) {
              return res.status(400).json({ message: error.message });
         }
+        // Error de Mongoose (ej. validación) u otro error interno
         res.status(500).json({ message: 'Error interno del servidor al subir las imágenes.', error: error.message });
     }
 });
-
-app.delete('/api/images/habitaciones/:roomId/:filename', async (req, res) => {
+// ===== FIN RUTA MODIFICADA =====
+// ===== INICIO: Ruta CORREGIDA para Borrar Imágenes =====
+// Quitar '/habitaciones' de la ruta
+app.delete('/api/images/:roomId/:filename', async (req, res) => {
     const { roomId, filename } = req.params;
-    console.log(`Recibida petición DELETE a /api/images/habitaciones/${roomId}/${filename}`);
+    console.log(`Recibida petición DELETE a /api/images/${roomId}/${filename}`); // Log actualizado
     try {
         if (!mongoose.Types.ObjectId.isValid(roomId)) {
             return res.status(400).send('ID de habitación inválido.');
         }
-        // Decodificar el nombre del archivo si contiene caracteres especiales codificados en la URL
         const decodedFilename = decodeURIComponent(filename);
-        const imageUrlToRemove = `/images/habitaciones/${roomId}/${decodedFilename}`;
+        // --- CORRECCIÓN AQUÍ: Quitar '/habitaciones' ---
+        const imageUrlToRemove = `/images/${roomId}/${decodedFilename}`;
+        // --- FIN CORRECCIÓN ---
 
         console.log(`Intentando quitar URL: ${imageUrlToRemove} de la habitación ${roomId}`);
         const updatedRoom = await Habitacion.findByIdAndUpdate(
             roomId,
-            { $pull: { imageUrls: imageUrlToRemove } }, // $pull quita elementos del array que coincidan
+            { $pull: { imageUrls: imageUrlToRemove } }, // Usar URL corregida
             { new: true }
         );
 
         if (!updatedRoom) {
             console.error(`Habitación ${roomId} no encontrada al intentar borrar imagen.`);
-            // Si la habitación no existe, no hay nada que borrar.
-            // Podríamos verificar si la URL existía antes, pero $pull no da error si no encuentra.
             return res.status(404).json({ message: 'Habitación no encontrada o la imagen ya no estaba asociada.' });
         }
 
-        // Borrar el archivo físico del servidor
+        // Borrar el archivo físico del servidor (esta parte estaba bien)
         const filePath = path.join(__dirname, 'uploads', roomId.toString(), decodedFilename);
         try {
-            await fs.access(filePath); // Verifica si el archivo existe antes de borrar
-            await fs.unlink(filePath); // Borra el archivo
+            await fs.access(filePath);
+            await fs.unlink(filePath);
             console.log(`Archivo físico borrado: ${filePath}`);
         } catch (unlinkError) {
-            if (unlinkError.code === 'ENOENT') { // Error NO ENTry (el archivo no existe)
+            if (unlinkError.code === 'ENOENT') {
                 console.warn(`Advertencia: El archivo ${filePath} no existía en el servidor al intentar borrarlo.`);
-                // Esto es aceptable si la DB se desincronizó o si se borró manualmente
-            } else { // Otro error al borrar (ej. permisos)
+            } else {
                 console.error(`Error al borrar el archivo físico ${filePath}:`, unlinkError);
-                // Considera si esto debería ser un error 500 o solo una advertencia
-                // return res.status(500).json({ message: 'Error al borrar el archivo físico.' });
+                // Considerar si devolver 500 o advertir
             }
         }
 
@@ -741,6 +760,7 @@ app.delete('/api/images/habitaciones/:roomId/:filename', async (req, res) => {
         res.status(500).json({ message: 'Error interno del servidor al eliminar la imagen.', error: error.message });
     }
 });
+// ===== FIN: Ruta CORREGIDA para Borrar Imágenes =====
 
 app.get('/api/habitaciones/disponibles', async (req, res) => {
   const { fechaInicio, fechaFin } = req.query;
@@ -1231,6 +1251,62 @@ app.get('/api/eventos/:id/contrato', async (req, res) => {
         res.status(500).send(`Error general al generar el contrato del evento. Detalles: ${error.message}.`);
     }
 });
+
+// ===== INICIO: Nueva Ruta para Galería de Alberca =====
+app.get('/api/gallery/pool', async (req, res) => {
+    const poolImagesPath = path.join(__dirname, 'uploads', 'pool');
+    console.log(`Intentando leer imágenes de alberca desde: ${poolImagesPath}`);
+    try {
+        // Verificar si la carpeta existe
+        await fs.access(poolImagesPath);
+        // Leer los nombres de archivo en la carpeta 'uploads/pool'
+        const files = await fs.readdir(poolImagesPath);
+
+        // Filtrar solo archivos de imagen comunes
+        const imageFiles = files.filter(file => /\.(jpg|jpeg|png|gif|webp)$/i.test(file));
+
+        // Construir las URLs públicas relativas (coincidiendo con express.static)
+        const imageUrls = imageFiles.map(file => `/images/pool/${file}`);
+
+        console.log(`Imágenes encontradas para alberca: ${imageUrls.length}`);
+        res.json(imageUrls); // Enviar el array de URLs
+
+    } catch (error) {
+        // Manejar error si la carpeta no existe o no se puede leer
+        if (error.code === 'ENOENT') { // ENOENT = Error NO ENTry (No existe)
+            console.warn(`Advertencia: La carpeta de imágenes de la alberca no existe en ${poolImagesPath}`);
+            res.json([]); // Devolver array vacío si no hay carpeta/imágenes
+        } else {
+            console.error("❌ Error al leer imágenes de la alberca:", error);
+            res.status(500).json({ message: 'Error al obtener imágenes de la galería.', error: error.message });
+        }
+    }
+});
+// ===== FIN: Nueva Ruta para Galería de Alberca =====
+
+// ===== INICIO: Nueva Ruta para Galería de Comida =====
+app.get('/api/gallery/food', async (req, res) => {
+    const foodImagesPath = path.join(__dirname, 'uploads', 'food');
+    console.log(`Intentando leer imágenes de comida desde: ${foodImagesPath}`);
+    try {
+        await fs.access(foodImagesPath); // Verifica si la carpeta existe
+        const files = await fs.readdir(foodImagesPath);
+        const imageFiles = files.filter(file => /\.(jpg|jpeg|png|gif|webp)$/i.test(file));
+        // Construir las URLs públicas relativas (coincidiendo con express.static)
+        const imageUrls = imageFiles.map(file => `/images/food/${file}`); // Ruta base /images
+        console.log(`Imágenes encontradas para comida: ${imageUrls.length}`);
+        res.json(imageUrls);
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            console.warn(`Advertencia: La carpeta de imágenes de comida no existe en ${foodImagesPath}`);
+            res.json([]); // Devolver array vacío
+        } else {
+            console.error("❌ Error al leer imágenes de comida:", error);
+            res.status(500).json({ message: 'Error al obtener imágenes de la galería de comida.', error: error.message });
+        }
+    }
+});
+// ===== FIN: Nueva Ruta para Galería de Comida =====
 
 // --- MANEJADORES DE ERROR (AL FINAL) ---
 // Middleware para manejar errores 404 (rutas no encontradas)
