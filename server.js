@@ -8,11 +8,11 @@ import puppeteer from 'puppeteer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import multer from 'multer'; // Para manejar subida de archivos
-import crypto from 'crypto'; // Para generar nombres de archivo únicos
+import multer from 'multer'; 
+import crypto from 'crypto'; 
 
 // --- Configuración Inicial ---
-dotenv.config(); // Carga variables de entorno desde .env si existe
+dotenv.config(); 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const __filename = fileURLToPath(import.meta.url);
@@ -30,8 +30,8 @@ app.use('/images', express.static(uploadsPath));
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: process.env.EMAIL_USER || 'ordazruudvan@gmail.com', // Reemplaza o usa .env
-        pass: process.env.EMAIL_PASS || 'qpcs cois sjhp wvrl', // Reemplaza o usa .env
+        user: process.env.EMAIL_USER || 'ordazruudvan@gmail.com', 
+        pass: process.env.EMAIL_PASS || 'qpcs cois sjhp wvrl', 
     },
 });
 
@@ -39,10 +39,10 @@ const transporter = nodemailer.createTransport({
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/palapalacasona';
 mongoose.connect(MONGODB_URI)
 .then(() => {
-  console.log(`✅ Conectado a MongoDB en ${MONGODB_URI === process.env.MONGODB_URI ? 'URI de entorno' : 'URI local'}`);
-  setupInitialConfig(); // Asegura que la configuración exista
+  console.log(`Conectado a MongoDB en ${MONGODB_URI === process.env.MONGODB_URI ? 'URI de entorno' : 'URI local'}`);
+  setupInitialConfig(); 
 })
-.catch(err => console.error('❌ Error de conexión a MongoDB:', err));
+.catch(err => console.error('Error de conexión a MongoDB:', err));
 
 // --- ESQUEMAS Y MODELOS ---
 
@@ -131,9 +131,9 @@ const setupInitialConfig = async () => {
           whatsappUrl: 'https://wa.me/529514401726?text=Hola,%20aquí%20está%20el%20comprobante%20de%20mi%20reserva.',
         };
         await Config.findOneAndUpdate({ identificador: 'configuracion-principal' }, configData, { upsert: true, new: true, setDefaultsOnInsert: true });
-        console.log('✅ Documento de configuración de pago inicializado/verificado.');
+        console.log('Documento de configuración de pago inicializado/verificado.');
       } catch (error) {
-        console.error('❌ Error al configurar los datos iniciales:', error.message);
+        console.error('Error al configurar los datos iniciales:', error.message);
       }
 };
 
@@ -168,7 +168,7 @@ const sendConfirmationEmail = async (reserva, datosCliente, configuracionPago) =
         }
 
         const mailOptions = {
-            from: `"Palapa La Casona" <${process.env.EMAIL_USER || 'ordazruudvan@gmail.com'}>`, // Ajusta email
+            from: `"Palapa La Casona" <${process.env.EMAIL_USER || 'ordazruudvan@gmail.com'}>`,
             to: datosCliente.email,
             subject: `✅ Reserva Pendiente - Palapa La Casona (${habitacion.tipo})`,
             html: `
@@ -206,9 +206,9 @@ const sendConfirmationEmail = async (reserva, datosCliente, configuracionPago) =
             `,
         };
         const info = await transporter.sendMail(mailOptions);
-        console.log("✅ Mensaje de confirmación enviado a: %s", datosCliente.email, "ID:", info.messageId);
+        console.log("Mensaje de confirmación enviado a: %s", datosCliente.email, "ID:", info.messageId);
     } catch (error) {
-        console.error("❌ ERROR al enviar el correo:", error);
+        console.error("ERROR al enviar el correo:", error);
     }
 };
 
@@ -255,7 +255,7 @@ app.post('/api/login', async (req, res) => {
       const isMatch = await user.comparePassword(password);
       if (!isMatch) return res.status(400).json({ message: 'Contraseña incorrecta.' });
       res.status(200).json({ message: 'Login exitoso.', user: { _id: user._id, username: user.username, role: user.role } });
-    } catch (error) { console.error("❌ ERROR EN LOGIN:", error); res.status(500).json({ message: 'Error en servidor durante login.', error: error.message }); }
+    } catch (error) { console.error("ERROR EN LOGIN:", error); res.status(500).json({ message: 'Error en servidor durante login.', error: error.message }); }
 });
 
 // Reservas (Cuartos)
@@ -286,7 +286,7 @@ app.get('/api/reservas', async (req, res) => {
           .populate('usuario', 'username')
           .sort({ fechaInicio: 1 });
         res.json(reservas);
-      } catch (error) { console.error("❌ Error al obtener reservas:", error); res.status(500).json({ message: 'Error al obtener reservas.', error: error.message }); }
+      } catch (error) { console.error("Error al obtener reservas:", error); res.status(500).json({ message: 'Error al obtener reservas.', error: error.message }); }
 });
 
 app.post('/api/reservas', async (req, res) => {
@@ -324,7 +324,7 @@ app.post('/api/reservas', async (req, res) => {
         }
         res.status(201).json({ message: 'Reserva creada.', reserva: nuevaReserva, configuracionPago: await Config.findOne({ identificador: 'configuracion-principal' }) });
     } catch (error) {
-        console.error("❌ Error al crear reserva:", error);
+        console.error("Error al crear reserva:", error);
         if (error.name === 'ValidationError') return res.status(400).json({ message: 'Datos inválidos.', error: error.message });
         res.status(500).json({ message: 'Error interno al crear reserva.', error: error.message });
     }
@@ -332,14 +332,13 @@ app.post('/api/reservas', async (req, res) => {
 
 app.put('/api/reservas/:id', async (req, res) => {
     const { id } = req.params;
-    // Asegúrate que telefonoHuesped esté en allowedUpdates
     const allowedUpdates = ['habitacionId', 'usuarioId', 'nombreHuesped', 'fechaInicio', 'fechaFin', 'estado', 'tipoPago', 'emailHuesped', 'telefonoHuesped'];
     const updates = {}; let needsRecalculation = false;
     for (const key in req.body) {
         if (allowedUpdates.includes(key)) {
              if (key === 'habitacionId') { updates['habitacion'] = req.body[key]; needsRecalculation = true; }
              else if (key === 'usuarioId') { updates['usuario'] = req.body[key] === '' || req.body[key] === null ? null : req.body[key]; }
-             else { updates[key] = req.body[key]; } // Incluye telefonoHuesped
+             else { updates[key] = req.body[key]; } 
              if (key === 'fechaInicio' || key === 'fechaFin') { needsRecalculation = true; }
         }
     }
@@ -379,12 +378,12 @@ app.delete('/api/reservas/:id', async (req, res) => {
     } catch (error) { console.error("❌ Error al eliminar reserva:", error); res.status(500).json({ message: 'Error interno al eliminar reserva.', error: error.message }); }
 });
 
-// Eventos (Área Social) - ACTUALIZADO
+// Eventos (Área Social)
 app.get('/api/eventos', async (req, res) => {
     try {
         const eventos = await Evento.find({}).sort({ fechaEvento: 1 });
         res.json(eventos);
-      } catch (error) { console.error("❌ Error al obtener eventos:", error); res.status(500).json({ message: 'Error al obtener eventos.', error: error.message }); }
+      } catch (error) { console.error("Error al obtener eventos:", error); res.status(500).json({ message: 'Error al obtener eventos.', error: error.message }); }
 });
 
 app.post('/api/eventos', async (req, res) => {
@@ -397,7 +396,7 @@ app.post('/api/eventos', async (req, res) => {
         console.log(">>> Evento guardado:", nuevoEvento);
         res.status(201).json(nuevoEvento);
       } catch (error) {
-        console.error("❌ Error al crear evento:", error);
+        console.error("Error al crear evento:", error);
         if (error.name === 'ValidationError') return res.status(400).json({ message: 'Datos inválidos.', errors: error.errors });
         res.status(500).json({ message: 'Error interno al crear evento.', error: error.message });
       }
@@ -415,7 +414,7 @@ app.put('/api/eventos/:id', async (req, res) => {
         console.log(`>>> Evento ${id} actualizado.`, evento);
         res.json(evento);
     } catch (error) {
-        console.error("❌ Error al actualizar evento:", error);
+        console.error("Error al actualizar evento:", error);
         if (error.name === 'ValidationError') return res.status(400).json({ message: 'Datos inválidos.', errors: error.errors });
         res.status(500).json({ message: 'Error interno al actualizar evento.', error: error.message });
     }
@@ -427,13 +426,13 @@ app.delete('/api/eventos/:id', async (req, res) => {
         const evento = await Evento.findByIdAndDelete(id);
         if (!evento) return res.status(404).json({ message: 'Evento no encontrado.' });
         res.json({ message: 'Evento eliminado.' });
-      } catch (error) { console.error("❌ Error al eliminar evento:", error); res.status(500).json({ message: 'Error interno al eliminar evento.', error: error.message }); }
+      } catch (error) { console.error("Error al eliminar evento:", error); res.status(500).json({ message: 'Error interno al eliminar evento.', error: error.message }); }
 });
 
 // Usuarios
 app.get('/api/users-list', async (req, res) => {
     try { const users = await User.find({}, '_id username role'); res.json(users); }
-    catch (error) { console.error("❌ Error al obtener lista de usuarios:", error); res.status(500).json({ message: 'Error al obtener usuarios.', error: error.message }); }
+    catch (error) { console.error("Error al obtener lista de usuarios:", error); res.status(500).json({ message: 'Error al obtener usuarios.', error: error.message }); }
 });
 
 // Habitaciones (CRUD + Imágenes)
@@ -456,7 +455,7 @@ app.post('/api/upload/room-images/:roomId', upload.array('images', 10), async (r
         console.log(`[Upload] Éxito: URLs añadidas a ${roomId}.`, updatedRoom.imageUrls);
         res.status(200).json({ message: `${req.files.length} imágenes subidas.`, imageUrls: updatedRoom.imageUrls });
     } catch (error) {
-        console.error(`[Upload] ❌ Error general subida ${roomId}:`, error);
+        console.error(`[Upload] Error general subida ${roomId}:`, error);
         if (error instanceof multer.MulterError) return res.status(400).json({ message: `Error Multer: ${error.message}` });
         if (error.message.includes('Formato') || error.message.includes('ID inválido')) return res.status(400).json({ message: error.message });
         res.status(500).json({ message: 'Error interno al subir imágenes.', error: error.message });
@@ -478,7 +477,7 @@ app.delete('/api/images/:roomId/:filename', async (req, res) => {
         catch (unlinkError) { if (unlinkError.code === 'ENOENT') console.warn(`Advertencia: Archivo ${filePath} no existía.`); else console.error(`Error al borrar ${filePath}:`, unlinkError); }
         console.log(`Imagen ${decodedFilename} eliminada de ${roomId}. Restantes:`, updatedRoom.imageUrls);
         res.status(200).json({ message: 'Imagen eliminada.', imageUrls: updatedRoom.imageUrls });
-    } catch (error) { console.error(`❌ Error general al eliminar imagen ${filename} de ${roomId}:`, error); res.status(500).json({ message: 'Error interno al eliminar imagen.', error: error.message }); }
+    } catch (error) { console.error(`Error general al eliminar imagen ${filename} de ${roomId}:`, error); res.status(500).json({ message: 'Error interno al eliminar imagen.', error: error.message }); }
 });
 
 app.get('/api/habitaciones/disponibles', async (req, res) => {
@@ -491,12 +490,12 @@ app.get('/api/habitaciones/disponibles', async (req, res) => {
         const idsConflictivas = conflictos.map(c => c.habitacion.toString());
         const disponibles = await Habitacion.find({ _id: { $nin: idsConflictivas } }).sort({ numero: 1 });
         res.json(disponibles);
-    } catch (error) { console.error("❌ Error al buscar disponibilidad:", error); res.status(500).json({ message: 'Error al buscar disponibilidad.', error: error.message }); }
+    } catch (error) { console.error("Error al buscar disponibilidad:", error); res.status(500).json({ message: 'Error al buscar disponibilidad.', error: error.message }); }
 });
 
 app.get('/api/habitaciones', async (req, res) => {
     try { const habitaciones = await Habitacion.find({}).sort({ numero: 1 }); res.json(habitaciones); }
-    catch (error) { console.error("❌ Error al obtener habitaciones:", error); res.status(500).json({ message: 'Error al obtener habitaciones.', error: error.message }); }
+    catch (error) { console.error("Error al obtener habitaciones:", error); res.status(500).json({ message: 'Error al obtener habitaciones.', error: error.message }); }
 });
 
 app.post('/api/habitaciones', async (req, res) => {
@@ -510,7 +509,7 @@ app.post('/api/habitaciones', async (req, res) => {
     } catch (error) {
         if (error.code === 11000) return res.status(409).json({ message: `Número de habitación ${numero} ya existe.` });
         if (error.name === 'ValidationError') return res.status(400).json({ message: 'Datos inválidos.', errors: error.errors });
-        console.error("❌ Error al crear habitación:", error); res.status(500).json({ message: 'Error al crear habitación.', error: error.message });
+        console.error("Error al crear habitación:", error); res.status(500).json({ message: 'Error al crear habitación.', error: error.message });
     }
 });
 
@@ -554,7 +553,7 @@ app.get('/api/stats/reservas', async (req, res) => {
         statsEventos.forEach(stat => { formattedStats.totalEventos += stat.count; if (formattedStats.eventosPorEstado[stat.estado] !== undefined) formattedStats.eventosPorEstado[stat.estado] = stat.count; formattedStats.totalIngresosEventos += stat.totalIncome; });
         formattedStats.totalHabitaciones = await Habitacion.countDocuments();
         res.json(formattedStats);
-    } catch (error) { console.error("❌ Error al obtener estadísticas:", error); res.status(500).json({ message: 'Error al obtener estadísticas.', error: error.message }); }
+    } catch (error) { console.error("Error al obtener estadísticas:", error); res.status(500).json({ message: 'Error al obtener estadísticas.', error: error.message }); }
 });
 
 // Configuración
@@ -563,7 +562,7 @@ app.get('/api/config/contacto', async (req, res) => {
         const config = await Config.findOne({ identificador: 'configuracion-principal' });
         if (!config) return res.status(404).json({ message: 'Configuración no encontrada.' });
         res.json({ whatsappUrl: config.whatsappUrl });
-    } catch (error) { console.error("❌ Error al obtener config contacto:", error); res.status(500).json({ message: 'Error al obtener config.', error: error.message }); }
+    } catch (error) { console.error("Error al obtener config contacto:", error); res.status(500).json({ message: 'Error al obtener config.', error: error.message }); }
 });
 
 // Galerías Públicas
@@ -584,7 +583,7 @@ app.get('/api/gallery/food', async (req, res) => {
 async function generarContratoPDF(res, plantillaNombre, datos, idPrefijo, tipoNombre) {
     let browser = null;
     let tempPdfPath = null;
-    const id = datos.id || 'unknown'; // Necesitamos un ID para los logs
+    const id = datos.id || 'unknown'; 
 
     try {
         console.log(`[PDF ${tipoNombre} ${id}] Iniciando generación con plantilla: ${plantillaNombre}`);
@@ -605,7 +604,7 @@ async function generarContratoPDF(res, plantillaNombre, datos, idPrefijo, tipoNo
         console.log(`[PDF ${tipoNombre} ${id}] Datos preparados:`, datos);
         console.log(`[PDF ${tipoNombre} ${id}] Reemplazando placeholders...`);
         for (const key in datos) { html = html.replace(new RegExp(`{{${key}}}`, 'g'), datos[key] ?? ''); }
-        // Corrección HTML (ajusta si es necesario)
+
         html = html.replace(/<\/p>\s*<\/ol>/i, '</li>\n    </ol>');
         console.log(`[PDF ${tipoNombre} ${id}] Placeholders reemplazados.`);
 
@@ -632,7 +631,7 @@ async function generarContratoPDF(res, plantillaNombre, datos, idPrefijo, tipoNo
         console.log(`[PDF ${tipoNombre} ${id}] Respuesta enviada.`);
 
     } catch (error) {
-        console.error(`[PDF ${tipoNombre} ${id}] ❌ Error durante la generación:`, error);
+        console.error(`[PDF ${tipoNombre} ${id}] Error durante la generación:`, error);
         if (!res.headersSent) { res.status(500).send(`Error al generar contrato ${tipoNombre}: ${error.message}.`); }
         else { console.error(`[PDF ${tipoNombre} ${id}] Error ocurrió después de enviar headers.`); }
     } finally {
@@ -668,7 +667,7 @@ app.get('/api/reservas/:id/contrato', async (req, res) => {
         };
         await generarContratoPDF(res, 'contrato_tipo1', datos, 'contrato-reserva', 'Reserva');
     } catch (error) {
-        console.error(`[PDF Reserva ${id}] ❌ Error al preparar datos:`, error);
+        console.error(`[PDF Reserva ${id}] Error al preparar datos:`, error);
         if (!res.headersSent) res.status(500).send(`Error al preparar contrato: ${error.message}`);
     }
 });
@@ -694,7 +693,7 @@ app.get('/api/eventos/:id/contrato', async (req, res) => {
         };
         await generarContratoPDF(res, 'contrato_area_social', datos, 'contrato-evento', 'Evento');
     } catch (error) {
-        console.error(`[PDF Evento ${id}] ❌ Error al preparar datos:`, error);
+        console.error(`[PDF Evento ${id}] Error al preparar datos:`, error);
         if (!res.headersSent) res.status(500).send(`Error al preparar contrato: ${error.message}`);
     }
 });
@@ -706,13 +705,13 @@ app.use((req, res, next) => {
 });
 
 app.use((err, req, res, next) => {
-    console.error("❌ Error no controlado:", err.stack);
+    console.error("Error no controlado:", err.stack);
     const errorMessage = process.env.NODE_ENV === 'production' ? 'Ocurrió un error inesperado.' : err.message;
     res.status(err.status || 500).json({ message: 'Error interno del servidor.', error: errorMessage });
 });
 
 // --- Iniciar Servidor ---
 app.listen(PORT, () => {
-    console.log(`🚀 Servidor backend escuchando en http://localhost:${PORT}`);
+    console.log(`Servidor backend escuchando en http://localhost:${PORT}`);
     console.log('Sirviendo imágenes estáticas desde:', uploadsPath);
 });
